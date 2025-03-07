@@ -21,6 +21,7 @@ fi
 echo "Que accion desea realizar?"
 echo "1 - conectarse mediante Wi-Fi o ethernet"
 echo "2 - configurar red manualmente"
+echo "3 - salir"
 read -r accion
 if [[ "$accion" == "1" ]]; then
 echo "###################################"
@@ -52,12 +53,8 @@ if [[ "$tipo" == "w" ]]; then
 	echo "Conexion establecida. Configurando direccion ip..."
 	dhclient "$intrface"
 elif [[ "$tipo" == "c" ]]; then
-	echo "Escriba el nombre de la interfaz de red cableada a encender:"
-	ip a
-	read -r intrface2
 	echo "Conectando mediante red cableada..."
-	sudo ip link set "$intrface2" up
-	dhclient "intrface2" 
+	dhclient "intrface" 
 fi
 exit 0
 	
@@ -96,5 +93,9 @@ elif [[ "$conex" == "d" ]]; then
 fi
 systemctl restart networking
 echo "Configuracion finalizada"
+elif [[ "$accion" == "2" ]]; then
+	echo "saliendo del script..."
+	echo "tenga un buen dia"
+	exit 0
 fi
 exit 0
