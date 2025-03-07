@@ -1,6 +1,7 @@
-#¡/bin/bash
+#!/bin/bash
 
 #Este es un script para automatizar e implementar una "Intefaz" para conectarse a una red a traves de distintos metodos
+echo "Bienvenido al script para agilizar la conexion a una red"
 
 #Mostrar interfaces de red
 echo "Interfaces de red detectadas:" 
@@ -17,20 +18,19 @@ if [[ "$estado" == "down" ]]; then
 	exit 1
 fi
 
-#echo "Que accion desea realizar?"
-#echo "1 - Conectarse a una red mediante cable o wifi"
-#echo "2 - configurar red manualmente"
-#read accion
-#if [[ "$accion" == "1" ]]; then
+echo "Que accion desea realizar?"
+echo "1 - conectarse mediante Wi-Fi o ethernet"
+echo "2 - configurar red manualmente"
+read accion
+if [[ "$accion" == "1" ]]; then
 echo "###################################"
 echo "Iniciar Conexion a una Red"
 echo "###################################"
 
-echo "Desea conectarse mediante cable Ethernet o mediante Wi-Fi?"
+echo "Seleccione la forma en la que desea conectarse"
 echo "Wi-Fi = w"
 echo "Cable = c"
 read tipo
-	
 if [[ "$tipo" == "w" ]]; then
 	echo "Redes disponibles"
 	sudo iwlist "$intrface" scan | grep 'ESSID'
@@ -44,19 +44,23 @@ if [[ "$tipo" == "w" ]]; then
 	echo "comparando contraseñas..."
 	echo "finalizando procesos..."
 	sudo wpa_supplicant -i "$intrface" -c /usr/sbin/confwifi.conf
-	sudo dhclient wlp0s20f3
+	echo "Espere mientras se termina de configurar la conexion..."
+	echo "Conexion establecida. Configurando direccion ip..."
+	sudo dhclient "$intrface"
 elif [[ "$tipo" == "c" ]]; then
 	echo "Escriba el nombre de la interfaz de red cableada a encender:"
 	ip a
 	read intrface2
 	echo "Conectando mediante red cableada..."
 	sudo ip link set "$intrface2" up 
-fi	
-#	elif [[ "$accion" == "2" ]]; then
+fi
+exit 0
+	
+elif [[ "$accion" == "2" ]]; then
 echo "##################################"
-echo "Tipo de configiracion de red"
+echo "Configuracion manual"
 echo "##################################"
-echo "¿Que tipo de conexion desea tener? estatica (e) o dinamica (d)"
+echo "Desea conectarse de forma estatica (e) o dinamica (d)?"
 read conex
 if [[ "$conex" == "e" ]]; then
 	echo "configurando conexion estatica..."
@@ -72,13 +76,20 @@ if [[ "$conex" == "e" ]]; then
 	cat /etc/resolv.conf
 	read dns
 	echo "configurando conexion.."
-	sudo echo "auto "$intrface" 
-		iface "$intrface" inet static
-		address "$ip"
-		netmask "$mascara"
-			gateway "$puerta"
-			dns-nameservers "$dns"" > sudo nano +11 /etc/networking/interfaces	
+	
+	echo "auto "$intrface" 
+	iface "$intrface" inet static
+	address "$ip"
+	netmask "$mascara"
+	gateway "$puerta"
+	dns-nameservers "$dns"" | sudo tee -a /etc/network/interfaces	
 	sudo systemctl restart networking
 	echo "Conexion configurada correctamente"
+elif [[ "$conex" == "d" ]]; then
+	echo "Iniciando configuracion dinamica"
+	echo "esto podria tardar unos minutos..."
+	dhclient -v "$intrface"
+	echo "conexion completada"
 fi
-#fi
+fi
+exit 0
