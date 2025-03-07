@@ -9,9 +9,9 @@ ip a
 
 #Cambiar estado de interfaz (up, down)
 echo "Interfaz que desea cambiar su estado:"
-read intrface
+read -r intrface
 echo "Desea activar (up) o desactivar (down)"
-read estado
+read -r estado
 sudo ip link set "$intrface" "$estado"
 echo "interfaz $intrface establecida a $estado con exito!"
 if [[ "$estado" == "down" ]]; then
@@ -21,7 +21,7 @@ fi
 echo "Que accion desea realizar?"
 echo "1 - conectarse mediante Wi-Fi o ethernet"
 echo "2 - configurar red manualmente"
-read accion
+read -r accion
 if [[ "$accion" == "1" ]]; then
 echo "###################################"
 echo "Iniciar Conexion a una Red"
@@ -30,29 +30,34 @@ echo "###################################"
 echo "Seleccione la forma en la que desea conectarse"
 echo "Wi-Fi = w"
 echo "Cable = c"
-read tipo
+read -r tipo
 if [[ "$tipo" == "w" ]]; then
 	echo "Redes disponibles"
 	sudo iwlist "$intrface" scan | grep 'ESSID'
 	echo "ingrese el ISSD (nombre) de la red Wi-Fi a la que desee conectarse"
-	read ssid
-	echo "Ingrese la contraseña de la red"
-	read contra
-	wpa_passphrase "$ssid" "$contra" | sudo tee /usr/sbin/confwifi.conf
-	echo "configurando..."
-	sleep 2
-	echo "comparando contraseñas..."
-	echo "finalizando procesos..."
-	sudo wpa_supplicant -i "$intrface" -c /usr/sbin/confwifi.conf
+	read -r  ssid
+	echo "Ingrese la contraseña de la red (o deje en blanco y presione enter en caso de no tener)"
+	read -r contra
+	if [ -n "$password" ]; then
+		wpa_passphrase "$ssid" "$contra" | sudo tee /usr/sbin/confwifi.conf
+		echo "configurando..."
+		sleep 2
+		echo "comparando contraseñas..."
+		echo "finalizando procesos..."
+		wpa_supplicant -B -i "$intrface" -c /usr/sbin/confwifi.conf
+	else
+		iw dev "$intrface" connect "$ssid"
+	fi
 	echo "Espere mientras se termina de configurar la conexion..."
 	echo "Conexion establecida. Configurando direccion ip..."
-	sudo dhclient "$intrface"
+	dhclient "$intrface"
 elif [[ "$tipo" == "c" ]]; then
 	echo "Escriba el nombre de la interfaz de red cableada a encender:"
 	ip a
-	read intrface2
+	read -r intrface2
 	echo "Conectando mediante red cableada..."
-	sudo ip link set "$intrface2" up 
+	sudo ip link set "$intrface2" up
+	dhclient "intrface2" 
 fi
 exit 0
 	
@@ -61,35 +66,35 @@ echo "##################################"
 echo "Configuracion manual"
 echo "##################################"
 echo "Desea conectarse de forma estatica (e) o dinamica (d)?"
-read conex
+read -r conex
 if [[ "$conex" == "e" ]]; then
 	echo "configurando conexion estatica..."
 	ip addr show
 	echo "escriba la direccion ip:"
-	read ip
+	read -r ip
 	echo "escriba la mascara de red."
-	read mascara
+	read -r mascara
 	echo "escriba la puerta de enlace:"
 	ip route show
-	read puerta
+	read -r puerta
 	echo "escriba la direccion del servidor DNS"
 	cat /etc/resolv.conf
-	read dns
+	read -r dns
 	echo "configurando conexion.."
 	
-	echo "auto "$intrface" 
-	iface "$intrface" inet static
-	address "$ip"
-	netmask "$mascara"
-	gateway "$puerta"
-	dns-nameservers "$dns"" | sudo tee -a /etc/network/interfaces	
-	sudo systemctl restart networking
+	echo "auto $intrface 
+	iface $intrface inet static
+	address $ip
+	netmask $mascara
+	gateway $puerta
+	dns-nameservers $dns" > /etc/network/interfaces	
 	echo "Conexion configurada correctamente"
 elif [[ "$conex" == "d" ]]; then
 	echo "Iniciando configuracion dinamica"
-	echo "esto podria tardar unos minutos..."
-	dhclient -v "$intrface"
-	echo "conexion completada"
+	echo "auto $intrface
+	iface $intrface inet dhcp" > /etc/network/interfaces
 fi
+systemctl restart networking
+echo "Configuracion finalizada"
 fi
 exit 0
